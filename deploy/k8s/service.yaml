@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: secure-api-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: secure-doc-api
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080 # Mengarahkan traffic dari port 80 (HTTP) ke port 8080 (Golang)

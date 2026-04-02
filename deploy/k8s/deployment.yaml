@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: secure-api-deployment
+  labels:
+    app: secure-doc-api
+spec:
+  replicas: 3 # Syarat wajib: 3 layanan/pod pasti berjalan
+  selector:
+    matchLabels:
+      app: secure-doc-api
+  template:
+    metadata:
+      labels:
+        app: secure-doc-api
+    spec:
+      # Keamanan tingkat Pod: Memaksa semua container berjalan sebagai non-root
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+      containers:
+      - name: secure-api
+        # Image ini akan otomatis di-update oleh pipeline Cloud Build kita (Langkah 4)
+        image: us-central1-docker.pkg.dev/PROJECT_ID/secure-doc-repo/secure-doc-api:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+        # Keamanan tingkat Container (DevSecOps Highlight)
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true # Mencegah hacker menulis file/malware di dalam container
+          capabilities:
+            drop:
+              - ALL # Mencabut semua hak akses kernel Linux yang tidak perlu
+        # Manajemen Resource untuk mencegah DoS / kehabisan memori Node
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "250m"
+            memory: "256Mi"
+        # Menghubungkan Liveness/Readiness probe ke endpoint Golang yang sudah kita buat
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 15
+          periodSeconds: 20

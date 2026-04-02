@@ -1,0 +1,76 @@
+# cloudbuild.yaml
+steps:
+  # ==========================================
+  # STEP 1: SAST (Static Application Security Testing) & Unit Test
+  # ==========================================
+  # Menjalankan go test dan gosec untuk memastikan tidak ada celah keamanan di kode (misal: hardcoded secret, SQL injection)
+  - name: 'golang:1.24'
+    id: 'Tingkat-1-Security-Scan'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        echo "Menjalankan Golang Unit Test..."
+        go test ./... -v
+        
+        echo "Menginstal dan Menjalankan Gosec (Go Security Scanner)..."
+        go install github.com/securego/gosec/v2/cmd/gosec@latest
+        gosec -fmt=text -out=results.txt ./...
+        cat results.txt
+
+  # ==========================================
+  # STEP 2: Build Docker Image
+  # ==========================================
+  # Membangun image menggunakan Secure Dockerfile yang sudah kita buat
+  # Kita menggunakan tag $COMMIT_SHA (ID unik dari GitHub commit) sebagai versioning
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'Tingkat-2-Build-Image'
+    args: 
+      - 'build'
+      - '-t'
+      - '$_REGION-docker.pkg.dev/$PROJECT_ID/$_REPO_NAME/$_IMAGE_NAME:$COMMIT_SHA'
+      - '.'
+
+  # ==========================================
+  # STEP 3: Push ke Artifact Registry
+  # ==========================================
+  # Menyimpan image ke Artifact Registry. 
+  # *Catatan DevSecOps: Setelah di-push, Artifact Registry akan otomatis melakukan Container Vulnerability Scanning!
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'Tingkat-3-Push-Artifact'
+    args: 
+      - 'push'
+      - '$_REGION-docker.pkg.dev/$PROJECT_ID/$_REPO_NAME/$_IMAGE_NAME:$COMMIT_SHA'
+
+  # ==========================================
+  # STEP 4: CD - Deploy ke Kubernetes (GKE)
+  # ==========================================
+  # Memperbarui image pada Deployment Kubernetes yang sudah berjalan dengan image baru
+  - name: 'gcr.io/cloud-builders/kubectl'
+    id: 'Tingkat-4-Deploy-GKE'
+    args: 
+      - 'set'
+      - 'image'
+      - 'deployment/$_K8S_DEPLOYMENT_NAME'
+      - '$_K8S_CONTAINER_NAME=$_REGION-docker.pkg.dev/$PROJECT_ID/$_REPO_NAME/$_IMAGE_NAME:$COMMIT_SHA'
+    env:
+      - 'CLOUDSDK_COMPUTE_REGION=$_REGION'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=$_CLUSTER_NAME'
+
+# ==========================================
+# Variabel Substitusi (Ubah sesuai dengan project GCP Anda)
+# ==========================================
+substitutions:
+  _REGION: 'us-central1'                # Region standar untuk Free Trial
+  _REPO_NAME: 'secure-doc-repo'         # Nama repository di Artifact Registry
+  _IMAGE_NAME: 'secure-doc-api'         # Nama Docker Image
+  _CLUSTER_NAME: 'secure-gke-cluster'   # Nama klaster GKE Anda
+  _K8S_DEPLOYMENT_NAME: 'secure-api-deployment' # Nama deployment di Kubernetes
+  _K8S_CONTAINER_NAME: 'secure-api'     # Nama container di dalam pod Kubernetes
+
+# Memastikan image dicatat di Cloud Build build logs
+images:
+  - '$_REGION-docker.pkg.dev/$PROJECT_ID/$_REPO_NAME/$_IMAGE_NAME:$COMMIT_SHA'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
