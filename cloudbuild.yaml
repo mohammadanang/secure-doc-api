@@ -26,8 +26,7 @@ steps:
         go install github.com/securego/gosec/v2/cmd/gosec@latest
         
         echo "Menjalankan Gosec Security Scan..."
-        # Memanggil gosec menggunakan absolute path untuk menghindari error $PATH
-        $(go env GOPATH)/bin/gosec -no-fail -fmt=text -out=results.txt ./...
+        /go/bin/gosec -no-fail -fmt=text -out=results.txt ./...
         
         echo "=== HASIL SCAN KEAMANAN ==="
         cat results.txt
@@ -91,4 +90,3 @@ images:
 # ==========================================
 options:
   logging: CLOUD_LOGGING_ONLY
-  # dynamic_substitutions: true
