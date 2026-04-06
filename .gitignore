@@ -1,2 +1,12 @@
-bin
+# File binary hasil build Golang lokal
+secure-api
+/bin/
 main
+
+# Laporan gosec lokal (jika Anda menjalankannya di laptop)
+results.txt
+
+# File environment/kredensial lokal (meskipun saat ini kita tidak menggunakannya, ini best practice)
+.env
+*.json
+*.pem

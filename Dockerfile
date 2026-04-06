@@ -6,12 +6,10 @@ FROM golang:1.24-alpine AS builder
 # Set working directory
 WORKDIR /app
 
-# Copy module files (jika Anda sudah menambahkan dependency luar nantinya)
 COPY go.mod ./
-# COPY go.sum ./ (Uncomment jika go.sum sudah ada)
+
 RUN go mod download
 
-# Copy seluruh kode sumber
 COPY . .
 
 # Build binary Golang secara statis (CGO_ENABLED=0) agar kompatibel dengan distroless
@@ -33,8 +31,6 @@ COPY --from=builder /app/secure-api .
 # Ini mencegah ekskalasi hak akses jika container diretas
 USER 65532:65532
 
-# Expose port aplikasi
 EXPOSE 8080
 
-# Entrypoint langsung menunjuk ke binary
 ENTRYPOINT ["/secure-api"]
