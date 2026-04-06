@@ -77,5 +77,8 @@ substitutions:
 images:
   - '$_REGION-docker.pkg.dev/$PROJECT_ID/$_REPO_NAME/$_IMAGE_NAME:$COMMIT_SHA'
 
-# options:
-#   logging: CLOUD_LOGGING_ONLY
+# ==========================================
+# WAJIB: Konfigurasi Logging untuk Service Account
+# ==========================================
+options:
+  logging: CLOUD_LOGGING_ONLY
