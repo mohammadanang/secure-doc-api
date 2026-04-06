@@ -23,7 +23,7 @@ steps:
       - '-c'
       - |
         echo "Menginstal Gosec..."
-        go install github.com/securego/gosec/v2/cmd/gosec@latest
+        go install github.com/securego/gosec/v2/cmd/gosec@v2.22.0
         
         echo "Menjalankan Gosec Security Scan..."
         /go/bin/gosec -no-fail -fmt=text -out=results.txt ./...
