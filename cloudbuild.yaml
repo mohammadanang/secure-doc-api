@@ -1,22 +1,27 @@
 # cloudbuild.yaml
 steps:
   # ==========================================
-  # STEP 1: SAST (Static Application Security Testing) & Unit Test
+  # STEP 1A: Unit Test
   # ==========================================
-  # Menjalankan go test dan gosec untuk memastikan tidak ada celah keamanan di kode (misal: hardcoded secret, SQL injection)
   - name: 'golang:1.24'
-    id: 'Tingkat-1-Security-Scan'
+    id: 'Tingkat-1A-Unit-Test'
     entrypoint: 'bash'
     args:
       - '-c'
       - |
         echo "Menjalankan Golang Unit Test..."
         go test ./... -v
-        
-        echo "Menginstal dan Menjalankan Gosec (Go Security Scanner)..."
-        go install github.com/securego/gosec/v2/cmd/gosec@latest
-        gosec -fmt=text -out=results.txt ./...
-        cat results.txt
+
+  # ==========================================
+  # STEP 1B: SAST (Static Application Security Testing)
+  # Menggunakan official Docker image gosec untuk menghindari masalah $PATH
+  # ==========================================
+  - name: 'securego/gosec:v2.22.0'
+    id: 'Tingkat-1B-Security-Scan'
+    args:
+      - '-fmt=text'
+      - '-out=results.txt'
+      - './...'
 
   # ==========================================
   # STEP 2: Build Docker Image
@@ -72,5 +77,5 @@ substitutions:
 images:
   - '$_REGION-docker.pkg.dev/$PROJECT_ID/$_REPO_NAME/$_IMAGE_NAME:$COMMIT_SHA'
 
-options:
-  logging: CLOUD_LOGGING_ONLY
+# options:
+#   logging: CLOUD_LOGGING_ONLY
